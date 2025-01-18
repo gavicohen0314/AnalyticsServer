@@ -2,3 +2,5 @@
 /venv
 # Cache
 __pycache__/
+# Database
+events.db
