@@ -23,14 +23,14 @@ jobs:
       uses: docker/login-action@v2
       with:
         registry: https://fastapianalyticsserver.azurecr.io/
-        username: ${{ secrets.AzureAppService_ContainerUsername_849b4b10f4c741ae9fffa1181ac8f966 }}
-        password: ${{ secrets.AzureAppService_ContainerPassword_c54a494fbb7c4f60b7fdc094a6634a73 }}
+        username: ${{ secrets.AzureAppService_ContainerUsername_4c6c0c7fd6f8401ba9f7d0f2b30fa36c }}
+        password: ${{ secrets.AzureAppService_ContainerPassword_4d9ee200141e40f3ac646f1adeb1e212 }}
 
     - name: Build and push container image to registry
       uses: docker/build-push-action@v3
       with:
         push: true
-        tags: fastapianalyticsserver.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_849b4b10f4c741ae9fffa1181ac8f966 }}/analyticsserver:${{ github.sha }}
+        tags: fastapianalyticsserver.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_4c6c0c7fd6f8401ba9f7d0f2b30fa36c }}/fastapianalyticsserver/analyticsserver:${{ github.sha }}
         file: ./Dockerfile
 
   deploy:
@@ -47,5 +47,5 @@ jobs:
       with:
         app-name: 'analytics-server'
         slot-name: 'production'
-        publish-profile: ${{ secrets.AzureAppService_PublishProfile_af5737857d104bd187089564d67f1065 }}
-        images: 'fastapianalyticsserver.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_849b4b10f4c741ae9fffa1181ac8f966 }}/analyticsserver:${{ github.sha }}'
+        publish-profile: ${{ secrets.AzureAppService_PublishProfile_40bbcef71842455fbfc58ee491710de6 }}
+        images: 'fastapianalyticsserver.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_4c6c0c7fd6f8401ba9f7d0f2b30fa36c }}/fastapianalyticsserver/analyticsserver:${{ github.sha }}'
