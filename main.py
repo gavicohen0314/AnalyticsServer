@@ -1,6 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import sqlite3
 
 DATABASE_FILE = "events.db"
@@ -47,6 +47,11 @@ class EventInput(BaseModel):
     eventname: str
 
 
+class ReportInput(BaseModel):
+    lastseconds: int
+    userid: str
+
+
 @app.post("/process_event")
 def process_event(event_data: EventInput) -> dict[str, str]:
     """
@@ -74,3 +79,41 @@ def process_event(event_data: EventInput) -> dict[str, str]:
         "eventname": event_data.eventname,
         "eventtimestamputc": event_timestamp
     }
+
+
+@app.post("/get_reports")
+def get_reports(report_data: ReportInput) -> dict[str, list[dict[str, str]]]:
+    """
+    Endpoint to fetch all events for a specific user ID that occurred within the last
+    X seconds.
+    """
+    try:
+        # Calculate the timestamp X seconds ago
+        time_threshold = datetime.now(timezone.utc) - timedelta(seconds=report_data.lastseconds)
+        time_threshold_str = time_threshold.isoformat()
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT eventtimestamputc, userid, eventname
+            FROM events
+            WHERE userid = ? AND eventtimestamputc >= ?
+            """,
+            (report_data.userid, time_threshold_str)
+        )
+
+        rows = cursor.fetchall()
+        conn.close()
+
+        # Transform the rows into a list of dictionaries
+        events = [
+            {"eventtimestamputc": row[0], "userid": row[1], "eventname": row[2]}
+            for row in rows
+        ]
+
+        return {"status": "success", "events": events}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
