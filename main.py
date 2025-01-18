@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 import sqlite3
 
 DATABASE_FILE = "events.db"
-app = FastAPI()
 
 
 def get_connection() -> sqlite3.Connection:
@@ -35,12 +34,12 @@ def create_table_if_not_exists() -> None:
     conn.close()
 
 
-@app.on_event("startup")
-def on_startup() -> None:
-    """
-    Function that ensures the table is created at startup.
-    """
+async def lifespan(app: FastAPI):
+    # ---- Startup actions ----
     create_table_if_not_exists()
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 class EventInput(BaseModel):
