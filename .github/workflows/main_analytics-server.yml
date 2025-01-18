@@ -1,0 +1,51 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy container app to Azure Web App - analytics-server
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: 'ubuntu-latest'
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Log in to registry
+      uses: docker/login-action@v2
+      with:
+        registry: https://fastapianalyticsserver.azurecr.io/
+        username: ${{ secrets.AzureAppService_ContainerUsername_849b4b10f4c741ae9fffa1181ac8f966 }}
+        password: ${{ secrets.AzureAppService_ContainerPassword_c54a494fbb7c4f60b7fdc094a6634a73 }}
+
+    - name: Build and push container image to registry
+      uses: docker/build-push-action@v3
+      with:
+        push: true
+        tags: fastapianalyticsserver.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_849b4b10f4c741ae9fffa1181ac8f966 }}/analyticsserver:${{ github.sha }}
+        file: ./Dockerfile
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: 'production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+    steps:
+    - name: Deploy to Azure Web App
+      id: deploy-to-webapp
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'analytics-server'
+        slot-name: 'production'
+        publish-profile: ${{ secrets.AzureAppService_PublishProfile_af5737857d104bd187089564d67f1065 }}
+        images: 'fastapianalyticsserver.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_849b4b10f4c741ae9fffa1181ac8f966 }}/analyticsserver:${{ github.sha }}'
