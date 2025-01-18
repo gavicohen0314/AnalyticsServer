@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
-from datetime import datetime
+from datetime import datetime, timezone
+import time
 
 from main import app, create_table_if_not_exists, get_connection
 
@@ -177,3 +178,41 @@ def test_extra_unexpected_fields():
     assert data["userid"] == "test_user"
     assert data["eventname"] == "test_event"
     assert "eventtimestamputc" in data
+
+
+def test_get_reports():
+    client = TestClient(app)
+    time.sleep(2)
+    # Step 1: Insert test events into the database
+    test_userid = "test_user"
+    test_events = [
+        {"userid": test_userid, "eventname": "event1"},
+        {"userid": test_userid, "eventname": "event2"}
+    ]
+
+    for event in test_events:
+        response = client.post("/process_event", json=event)
+        assert response.status_code == 200  # Ensure the event was processed successfully
+
+    # Step 2: Fetch events for the last 200 seconds
+    payload = {"lastseconds": 2, "userid": test_userid}
+    response = client.post("/get_reports", json=payload)
+
+    # Step 3: Assert the response
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert "events" in data
+    events = data["events"]
+
+    # Step 4: Validate the returned events
+    assert len(events) >= len(test_events)  # Ensure at least the test events are included
+    for event in events:
+        assert event["userid"] == test_userid
+        assert event["eventname"] in [e["eventname"] for e in test_events]
+
+    # Additional Step: Ensure the event timestamps are within the last 200 seconds
+    now = datetime.now(timezone.utc)
+    for event in events:
+        event_time = datetime.fromisoformat(event["eventtimestamputc"])
+        assert (now - event_time).total_seconds() <= 200, "Event timestamp out of range"
