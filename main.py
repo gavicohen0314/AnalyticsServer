@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from datetime import datetime, timezone, timedelta
 import sqlite3
+from contextlib import asynccontextmanager
 
 DATABASE_FILE = "events.db"
 
@@ -34,9 +35,11 @@ def create_table_if_not_exists() -> None:
     conn.close()
 
 
+@asynccontextmanager
 async def lifespan(app: FastAPI):
     # ---- Startup actions ----
     create_table_if_not_exists()
+    yield
 
 
 app = FastAPI(lifespan=lifespan)
@@ -50,6 +53,17 @@ class EventInput(BaseModel):
 class ReportInput(BaseModel):
     lastseconds: int
     userid: str
+
+
+class EventOutput(BaseModel):
+    eventtimestamputc: str
+    userid: str
+    eventname: str
+
+
+class ReportOutput(BaseModel):
+    status: str
+    events: list[EventOutput]
 
 
 @app.post("/process_event")
@@ -82,7 +96,7 @@ def process_event(event_data: EventInput) -> dict[str, str]:
 
 
 @app.post("/get_reports")
-def get_reports(report_data: ReportInput) -> dict[str, list[dict[str, str]]]:
+def get_reports(report_data: ReportInput) -> ReportOutput:
     """
     Endpoint to fetch all events for a specific user ID that occurred within the last
     X seconds.
