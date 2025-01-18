@@ -8,8 +8,8 @@ ANALYTICS_SERVER_URL = "https://analytics-server-frdaa5eecqc3acdy.israelcentral-
 
 # Function to generate random data
 def generate_random_event():
-    userid = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
-    eventname = ''.join(random.choices(string.ascii_lowercase, k=6))
+    userid = 'Gavi'
+    eventname = "event tag:" + ''.join(random.choices(string.ascii_lowercase, k=3))
     return {"userid": userid, "eventname": eventname}
 
 
@@ -18,9 +18,7 @@ def send_event():
     event_data = generate_random_event()
     try:
         response = httpx.post(ANALYTICS_SERVER_URL, json=event_data)
-        if response.status_code == 200:
-            print(f"Success: {event_data}")
-        else:
+        if response.status_code != 200:
             print(f"Failed: {event_data}, Status Code: {response.status_code}")
     except Exception as e:
         print(f"Error sending event: {e}")
@@ -29,7 +27,7 @@ def send_event():
 # Main function to make 1000 parallel requests
 def main():
     print("Starting to send events...")
-    Parallel(n_jobs=-1)(delayed(send_event)() for _ in range(1000))
+    Parallel(n_jobs=-1, timeout=10)(delayed(send_event)() for _ in range(1000))  # Used 10 jobs concurrently to avoid overloading the server
     print("Finished sending events.")
 
 
